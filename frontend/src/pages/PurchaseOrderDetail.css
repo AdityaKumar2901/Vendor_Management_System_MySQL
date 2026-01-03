@@ -1,0 +1,24 @@
+.po-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.po-header-section,
+.po-items-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 30px;
+}
+
+.po-items-section h2 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+}
+
+.data-table tfoot td {
+  padding: 15px;
+  border-top: 2px solid #dee2e6;
+  background-color: #f8f9fa;
+}
