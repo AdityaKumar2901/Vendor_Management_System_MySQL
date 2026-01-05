@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -40,7 +40,7 @@ router.get('/spend-by-vendor', async (req, res, next) => {
       ORDER BY totalSpend DESC
     `;
 
-    const [results] = await query(sql, [dateRange.start, dateRange.end]);
+    const [results] = await pool.query(sql, [dateRange.start, dateRange.end]);
 
     res.json({
       success: true,
@@ -79,7 +79,7 @@ router.get('/spend-trend', async (req, res, next) => {
 
     sql += ' GROUP BY period ORDER BY period ASC';
 
-    const [results] = await query(sql, params);
+    const [results] = await pool.query(sql, params);
 
     res.json({
       success: true,
@@ -117,7 +117,7 @@ router.get('/po-status', async (req, res, next) => {
 
     sql += ' GROUP BY status ORDER BY status';
 
-    const [results] = await query(sql, params);
+    const [results] = await pool.query(sql, params);
 
     res.json({
       success: true,
@@ -137,20 +137,20 @@ router.get('/summary', async (req, res, next) => {
     const { start, end } = req.query;
     const dateRange = getDateRange(start, end);
 
-    const [totalSpendResult] = await query(`
+    const [totalSpendResult] = await pool.query(`
       SELECT COALESCE(SUM(poi.qty * poi.unit_price), 0) as total
       FROM purchase_orders po
       JOIN purchase_order_items poi ON po.id = poi.purchase_order_id
       WHERE po.order_date >= ? AND po.order_date <= ?
     `, [dateRange.start, dateRange.end]);
 
-    const [orderCountResult] = await query(`
+    const [orderCountResult] = await pool.query(`
       SELECT COUNT(*) as count
       FROM purchase_orders
       WHERE order_date >= ? AND order_date <= ?
     `, [dateRange.start, dateRange.end]);
 
-    const [activeVendorsResult] = await query(`
+    const [activeVendorsResult] = await pool.query(`
       SELECT COUNT(DISTINCT vendor_id) as count
       FROM purchase_orders
       WHERE order_date >= ? AND order_date <= ?

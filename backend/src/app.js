@@ -35,15 +35,15 @@ app.use('/api/auth', authRoutes);
 // Dashboard endpoint (protected)
 app.get('/api/dashboard', authMiddleware, async (req, res, next) => {
   try {
-    const { query } = require('./db');
+    const pool = require('./db');
 
     // Get counts
-    const [vendorCount] = await query('SELECT COUNT(*) as count FROM vendors');
-    const [productCount] = await query('SELECT COUNT(*) as count FROM vendor_products');
-    const [openPOCount] = await query(
+    const [vendorCount] = await pool.query('SELECT COUNT(*) as count FROM vendors');
+    const [productCount] = await pool.query('SELECT COUNT(*) as count FROM vendor_products');
+    const [openPOCount] = await pool.query(
       "SELECT COUNT(*) as count FROM purchase_orders WHERE status IN ('draft', 'submitted')"
     );
-    const [totalPOCount] = await query('SELECT COUNT(*) as count FROM purchase_orders');
+    const [totalPOCount] = await pool.query('SELECT COUNT(*) as count FROM purchase_orders');
 
     res.json({
       success: true,

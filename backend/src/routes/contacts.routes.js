@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,7 +13,7 @@ router.get('/vendors/:vendorId/contacts', async (req, res, next) => {
     const { vendorId } = req.params;
 
     // Check if vendor exists
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [vendorId]
     );
@@ -26,7 +26,7 @@ router.get('/vendors/:vendorId/contacts', async (req, res, next) => {
     }
 
     // Get contacts
-    const [contacts] = await query(
+    const [contacts] = await pool.query(
       'SELECT * FROM vendor_contacts WHERE vendor_id = ? ORDER BY created_at DESC',
       [vendorId]
     );
@@ -55,7 +55,7 @@ router.post('/vendors/:vendorId/contacts', async (req, res, next) => {
     }
 
     // Check if vendor exists
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [vendorId]
     );
@@ -68,16 +68,16 @@ router.post('/vendors/:vendorId/contacts', async (req, res, next) => {
     }
 
     // Insert contact
-    const [result] = await query(
+    const [result] = await pool.query(
       `INSERT INTO vendor_contacts (vendor_id, name, email, phone, role)
        VALUES (?, ?, ?, ?, ?)`,
       [vendorId, name, email || null, phone || null, role || null]
     );
 
     // Fetch created contact
-    const [contacts] = await query(
+    const [contacts] = await pool.query(
       'SELECT * FROM vendor_contacts WHERE id = ?',
-      [result[0].insertId]
+      [result.insertId]
     );
 
     res.status(201).json({
@@ -105,7 +105,7 @@ router.put('/contacts/:contactId', async (req, res, next) => {
     }
 
     // Check if contact exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendor_contacts WHERE id = ?',
       [contactId]
     );
@@ -118,7 +118,7 @@ router.put('/contacts/:contactId', async (req, res, next) => {
     }
 
     // Update contact
-    await query(
+    await pool.query(
       `UPDATE vendor_contacts 
        SET name = ?, email = ?, phone = ?, role = ?
        WHERE id = ?`,
@@ -126,7 +126,7 @@ router.put('/contacts/:contactId', async (req, res, next) => {
     );
 
     // Fetch updated contact
-    const [contacts] = await query(
+    const [contacts] = await pool.query(
       'SELECT * FROM vendor_contacts WHERE id = ?',
       [contactId]
     );
@@ -147,7 +147,7 @@ router.delete('/contacts/:contactId', async (req, res, next) => {
     const { contactId } = req.params;
 
     // Check if contact exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendor_contacts WHERE id = ?',
       [contactId]
     );
@@ -160,7 +160,7 @@ router.delete('/contacts/:contactId', async (req, res, next) => {
     }
 
     // Delete contact
-    await query('DELETE FROM vendor_contacts WHERE id = ?', [contactId]);
+    await pool.query('DELETE FROM vendor_contacts WHERE id = ?', [contactId]);
 
     res.json({
       success: true,

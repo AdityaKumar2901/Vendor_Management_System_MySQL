@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,7 +13,7 @@ router.get('/vendors/:vendorId/products', async (req, res, next) => {
     const { vendorId } = req.params;
 
     // Check if vendor exists
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [vendorId]
     );
@@ -26,7 +26,7 @@ router.get('/vendors/:vendorId/products', async (req, res, next) => {
     }
 
     // Get products
-    const [products] = await query(
+    const [products] = await pool.query(
       'SELECT * FROM vendor_products WHERE vendor_id = ? ORDER BY created_at DESC',
       [vendorId]
     );
@@ -72,7 +72,7 @@ router.post('/vendors/:vendorId/products', async (req, res, next) => {
 
     // Check if vendor exists
     console.log('Checking if vendor exists:', vendorId);
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [vendorId]
     );
@@ -88,7 +88,7 @@ router.post('/vendors/:vendorId/products', async (req, res, next) => {
 
     // Insert product
     console.log('Inserting product...');
-    const [result] = await query(
+    const [result] = await pool.query(
       `INSERT INTO vendor_products (vendor_id, name, sku, unit_price, active)
        VALUES (?, ?, ?, ?, ?)`,
       [
@@ -96,16 +96,16 @@ router.post('/vendors/:vendorId/products', async (req, res, next) => {
         name,
         sku || null,
         parseFloat(unit_price),
-        active !== undefined ? (active ? 1 : 0) : 1
+        active !== undefined ? active : true
       ]
     );
 
     console.log('Insert result:', result);
 
     // Fetch created product
-    const [products] = await query(
+    const [products] = await pool.query(
       'SELECT * FROM vendor_products WHERE id = ?',
-      [result[0].insertId]
+      [result.insertId]
     );
 
     console.log('Created product:', products);
@@ -150,7 +150,7 @@ router.put('/products/:productId', async (req, res, next) => {
     }
 
     // Check if product exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendor_products WHERE id = ?',
       [productId]
     );
@@ -163,7 +163,7 @@ router.put('/products/:productId', async (req, res, next) => {
     }
 
     // Update product
-    await query(
+    await pool.query(
       `UPDATE vendor_products 
        SET name = ?, sku = ?, unit_price = ?, active = ?
        WHERE id = ?`,
@@ -171,7 +171,7 @@ router.put('/products/:productId', async (req, res, next) => {
     );
 
     // Fetch updated product
-    const [products] = await query(
+    const [products] = await pool.query(
       'SELECT * FROM vendor_products WHERE id = ?',
       [productId]
     );
@@ -192,7 +192,7 @@ router.delete('/products/:productId', async (req, res, next) => {
     const { productId } = req.params;
 
     // Check if product exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendor_products WHERE id = ?',
       [productId]
     );
@@ -205,7 +205,7 @@ router.delete('/products/:productId', async (req, res, next) => {
     }
 
     // Delete product
-    await query('DELETE FROM vendor_products WHERE id = ?', [productId]);
+    await pool.query('DELETE FROM vendor_products WHERE id = ?', [productId]);
 
     res.json({
       success: true,

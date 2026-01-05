@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -37,7 +37,7 @@ router.get('/', async (req, res, next) => {
 
     // Get total count
     const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-    const [countResult] = await query(countSql, params);
+    const [countResult] = await pool.query(countSql, params);
     const total = countResult[0].total;
 
     // Add sorting and pagination
@@ -45,7 +45,7 @@ router.get('/', async (req, res, next) => {
     params.push(parseInt(limit), offset);
 
     // Execute query
-    const [vendors] = await query(sql, params);
+    const [vendors] = await pool.query(sql, params);
 
     res.json({
       success: true,
@@ -103,7 +103,7 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    const [result] = await query(
+    const [result] = await pool.query(
       `INSERT INTO vendors (name, status, address, city, state, zip, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -118,9 +118,9 @@ router.post('/', async (req, res, next) => {
     );
 
     // Fetch created vendor
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT * FROM vendors WHERE id = ?',
-      [result[0].insertId]
+      [result.insertId]
     );
 
     res.status(201).json({
@@ -140,7 +140,7 @@ router.put('/:id', async (req, res, next) => {
     const { name, status, address, city, state, zip, notes } = req.body;
 
     // Check if vendor exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [id]
     );
@@ -160,15 +160,15 @@ router.put('/:id', async (req, res, next) => {
       });
     }
 
-    await query(
-      `UPDATE vendors 
+await pool.query(
+      `UPDATE vendors
        SET name = ?, status = ?, address = ?, city = ?, state = ?, zip = ?, notes = ?
        WHERE id = ?`,
       [name, status, address, city, state, zip, notes, id]
     );
 
     // Fetch updated vendor
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT * FROM vendors WHERE id = ?',
       [id]
     );
@@ -189,7 +189,7 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
 
     // Check if vendor exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [id]
     );
@@ -202,7 +202,7 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     // Delete vendor (cascade will delete contacts, products, etc.)
-    await query('DELETE FROM vendors WHERE id = ?', [id]);
+    await pool.query('DELETE FROM vendors WHERE id = ?', [id]);
 
     res.json({
       success: true,

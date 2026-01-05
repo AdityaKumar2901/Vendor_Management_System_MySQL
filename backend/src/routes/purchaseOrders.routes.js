@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -45,7 +45,7 @@ router.get('/', async (req, res, next) => {
       'SELECT po.*, v.name as vendor_name',
       'SELECT COUNT(*) as total'
     );
-    const [countResult] = await query(countSql, params);
+    const [countResult] = await pool.query(countSql, params);
     const total = countResult[0].total;
 
     // Add sorting and pagination
@@ -53,7 +53,7 @@ router.get('/', async (req, res, next) => {
     params.push(parseInt(limit), offset);
 
     // Execute query
-    const [purchaseOrders] = await query(sql, params);
+    const [purchaseOrders] = await pool.query(sql, params);
 
     res.json({
       success: true,
@@ -78,7 +78,7 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
 
     // Get purchase order
-    const [purchaseOrders] = await query(
+    const [purchaseOrders] = await pool.query(
       `SELECT po.*, v.name as vendor_name 
        FROM purchase_orders po
        LEFT JOIN vendors v ON po.vendor_id = v.id
@@ -94,7 +94,7 @@ router.get('/:id', async (req, res, next) => {
     }
 
     // Get items
-    const [items] = await query(
+    const [items] = await pool.query(
       `SELECT poi.*, vp.name as product_name, vp.sku
        FROM purchase_order_items poi
        LEFT JOIN vendor_products vp ON poi.product_id = vp.id
@@ -151,7 +151,7 @@ router.post('/', async (req, res, next) => {
     }
 
     // Check if vendor exists
-    const [vendors] = await query(
+    const [vendors] = await pool.query(
       'SELECT id FROM vendors WHERE id = ?',
       [vendor_id]
     );
@@ -164,7 +164,7 @@ router.post('/', async (req, res, next) => {
     }
 
     // Check if PO number already exists
-    const [existingPO] = await query(
+    const [existingPO] = await pool.query(
       'SELECT id FROM purchase_orders WHERE po_number = ?',
       [po_number]
     );
@@ -177,14 +177,14 @@ router.post('/', async (req, res, next) => {
     }
 
     // Insert purchase order
-    const [poResult] = await query(
+    const [poResult] = await pool.query(
       `INSERT INTO purchase_orders (vendor_id, po_number, status, order_date, notes)
        VALUES (?, ?, ?, ?, ?)`,
       [vendor_id, po_number, status || 'draft', order_date, notes || null]
     );
 
     console.log('PO insert result:', poResult);
-    const purchaseOrderId = poResult[0].insertId;
+    const purchaseOrderId = poResult.insertId;
     console.log('Purchase Order ID:', purchaseOrderId);
 
     if (!purchaseOrderId) {
@@ -201,7 +201,7 @@ router.post('/', async (req, res, next) => {
       }
 
       // Verify product exists and belongs to the vendor
-      const [products] = await query(
+      const [products] = await pool.query(
         'SELECT id FROM vendor_products WHERE id = ? AND vendor_id = ?',
         [item.product_id, vendor_id]
       );
@@ -214,7 +214,7 @@ router.post('/', async (req, res, next) => {
       }
 
       console.log('Inserting item:', { purchaseOrderId, product_id: item.product_id, qty: item.qty, unit_price: item.unit_price });
-      await query(
+      await pool.query(
         `INSERT INTO purchase_order_items (purchase_order_id, product_id, qty, unit_price)
          VALUES (?, ?, ?, ?)`,
         [purchaseOrderId, item.product_id, item.qty, item.unit_price]
@@ -222,7 +222,7 @@ router.post('/', async (req, res, next) => {
     }
 
     // Fetch created purchase order with items
-    const [newPO] = await query(
+    const [newPO] = await pool.query(
       `SELECT po.*, v.name as vendor_name 
        FROM purchase_orders po
        LEFT JOIN vendors v ON po.vendor_id = v.id
@@ -230,7 +230,7 @@ router.post('/', async (req, res, next) => {
       [purchaseOrderId]
     );
 
-    const [newItems] = await query(
+    const [newItems] = await pool.query(
       `SELECT poi.*, vp.name as product_name, vp.sku
        FROM purchase_order_items poi
        LEFT JOIN vendor_products vp ON poi.product_id = vp.id
@@ -258,7 +258,7 @@ router.put('/:id', async (req, res, next) => {
     const { status, order_date, notes } = req.body;
 
     // Check if purchase order exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM purchase_orders WHERE id = ?',
       [id]
     );
@@ -279,7 +279,7 @@ router.put('/:id', async (req, res, next) => {
     }
 
     // Update purchase order
-    await query(
+    await pool.query(
       `UPDATE purchase_orders 
        SET status = ?, order_date = ?, notes = ?
        WHERE id = ?`,
@@ -287,7 +287,7 @@ router.put('/:id', async (req, res, next) => {
     );
 
     // Fetch updated purchase order
-    const [purchaseOrders] = await query(
+    const [purchaseOrders] = await pool.query(
       `SELECT po.*, v.name as vendor_name 
        FROM purchase_orders po
        LEFT JOIN vendors v ON po.vendor_id = v.id
@@ -320,7 +320,7 @@ router.put('/:id/items', async (req, res, next) => {
     }
 
     // Check if purchase order exists
-    const [purchaseOrders] = await query(
+    const [purchaseOrders] = await pool.query(
       'SELECT vendor_id FROM purchase_orders WHERE id = ?',
       [id]
     );
@@ -335,7 +335,7 @@ router.put('/:id/items', async (req, res, next) => {
     const vendorId = purchaseOrders[0].vendor_id;
 
     // Delete existing items
-    await query(
+    await pool.query(
       'DELETE FROM purchase_order_items WHERE purchase_order_id = ?',
       [id]
     );
@@ -350,7 +350,7 @@ router.put('/:id/items', async (req, res, next) => {
       }
 
       // Verify product exists and belongs to the vendor
-      const [products] = await query(
+      const [products] = await pool.query(
         'SELECT id FROM vendor_products WHERE id = ? AND vendor_id = ?',
         [item.product_id, vendorId]
       );
@@ -362,7 +362,7 @@ router.put('/:id/items', async (req, res, next) => {
         });
       }
 
-      await query(
+      await pool.query(
         `INSERT INTO purchase_order_items (purchase_order_id, product_id, qty, unit_price)
          VALUES (?, ?, ?, ?)`,
         [id, item.product_id, item.qty, item.unit_price]
@@ -370,7 +370,7 @@ router.put('/:id/items', async (req, res, next) => {
     }
 
     // Fetch updated items
-    const [updatedItems] = await query(
+    const [updatedItems] = await pool.query(
       `SELECT poi.*, vp.name as product_name, vp.sku
        FROM purchase_order_items poi
        LEFT JOIN vendor_products vp ON poi.product_id = vp.id
@@ -394,7 +394,7 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
 
     // Check if purchase order exists
-    const [existing] = await query(
+    const [existing] = await pool.query(
       'SELECT id FROM purchase_orders WHERE id = ?',
       [id]
     );
@@ -407,7 +407,7 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     // Delete purchase order (cascade will delete items)
-    await query('DELETE FROM purchase_orders WHERE id = ?', [id]);
+    await pool.query('DELETE FROM purchase_orders WHERE id = ?', [id]);
 
     res.json({
       success: true,

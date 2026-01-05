@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { query } = require('../db');
+const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,7 +27,7 @@ router.post('/register', async (req, res, next) => {
     }
 
     // Check if user already exists
-    const [existingUsers] = await query(
+    const [existingUsers] = await pool.query(
       'SELECT id FROM users WHERE email = ?',
       [email]
     );
@@ -44,7 +44,7 @@ router.post('/register', async (req, res, next) => {
     const password_hash = await bcrypt.hash(password, saltRounds);
 
     // Insert user
-    const [result] = await query(
+    const [result] = await pool.query(
       'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
       [name, email, password_hash]
     );
@@ -87,7 +87,7 @@ router.post('/login', async (req, res, next) => {
     }
 
     // Find user
-    const [users] = await query(
+    const [users] = await pool.query(
       'SELECT id, name, email, password_hash FROM users WHERE email = ?',
       [email]
     );
@@ -138,7 +138,7 @@ router.post('/login', async (req, res, next) => {
 // Get current user (protected)
 router.get('/me', authMiddleware, async (req, res, next) => {
   try {
-    const [users] = await query(
+    const [users] = await pool.query(
       'SELECT id, name, email, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
