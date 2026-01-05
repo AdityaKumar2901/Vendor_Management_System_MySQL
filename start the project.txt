@@ -1,0 +1,108 @@
+================================================================================
+🚀 HOW TO START YOUR VENDOR MANAGEMENT SYSTEM PROJECT
+================================================================================
+
+STEP 1: CREATE MYSQL DATABASE
+------------------------------
+
+Open PowerShell or Command Prompt and run:
+
+    mysql -u root -p
+
+Enter password when prompted: root
+
+Inside MySQL, run these commands:
+
+    CREATE DATABASE vendor_management;
+    exit;
+
+
+STEP 2: IMPORT DATABASE SCHEMA
+-------------------------------
+
+Run these commands in PowerShell/Command Prompt:
+
+    # Import the schema
+    mysql -u root -p vendor_management < "c:\Aditya\Projects\New folder\database\schema.sql"
+
+    # Import sample data (optional - includes demo user)
+    mysql -u root -p vendor_management < "c:\Aditya\Projects\New folder\database\seed.sql"
+
+Enter password: root (when prompted)
+
+
+STEP 3: START BACKEND SERVER
+-----------------------------
+
+Open a terminal and run:
+
+    cd "c:\Aditya\Projects\New folder\backend"
+    npm run dev
+
+✅ Look for: "✅ MySQL database connected successfully"
+✅ Backend runs on: http://localhost:5000
+
+
+STEP 4: START FRONTEND SERVER
+------------------------------
+
+Open a NEW terminal (keep backend running) and run:
+
+    cd "c:\Aditya\Projects\New folder\frontend"
+    npm run dev
+
+✅ Look for: "Local: http://localhost:3000/"
+✅ Frontend runs on: http://localhost:3000
+
+
+STEP 5: OPEN APPLICATION IN BROWSER
+------------------------------------
+
+Open your browser and go to:
+
+    http://localhost:3000
+
+Login with demo credentials:
+    Email: demo@example.com
+    Password: demo123
+
+Or click "Sign up here" to create a new account.
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+IF MYSQL CONNECTION FAILS:
+--------------------------
+Check if MySQL is running:
+    mysql -u root -p -e "SELECT 1"
+
+Verify database exists:
+    mysql -u root -p -e "SHOW DATABASES;"
+
+
+IF PORT IS ALREADY IN USE:
+---------------------------
+Kill process on port 5000 (backend):
+    netstat -ano | findstr :5000
+    taskkill /PID <PID> /F
+
+Kill process on port 3000 (frontend):
+    netstat -ano | findstr :3000
+    taskkill /PID <PID> /F
+
+
+VERIFY CONFIGURATION:
+---------------------
+Backend .env file should have:
+    DB_HOST=localhost
+    DB_PORT=3306
+    DB_USER=root
+    DB_PASSWORD=root
+    DB_NAME=vendor_management
+
+
+================================================================================
+That's it! Your application should now be running. 🎉
+================================================================================
