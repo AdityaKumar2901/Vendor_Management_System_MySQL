@@ -6,7 +6,8 @@ A comprehensive full-stack web application for managing vendors, contacts, produ
 
 ### Backend
 - **Node.js (v24.4.1)** + **Express.js** - RESTful API server
-- **sql.js** - Pure JavaScript embedded SQLite database (no external DB required!)
+- **MySQL** - Relational database management system
+- **mysql2** - MySQL client for Node.js with Promise support
 - **JWT (jsonwebtoken)** - Secure authentication with bearer tokens
 - **bcryptjs** - Password hashing (pure JS implementation)
 - **dotenv** - Environment variables management
@@ -110,9 +111,8 @@ Local Vendor Management System/
 
 - **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) or **yarn**
+- **MySQL** (v8.0 or higher) - [Download here](https://dev.mysql.com/downloads/mysql/) or use XAMPP
 - **Git** (optional, for version control)
-
-> **Note:** No external database installation required! This project uses an embedded SQLite database via sql.js.
 
 ### Installation Steps
 
@@ -142,7 +142,7 @@ npm install
 # - dotenv: Environment variables
 # - jsonwebtoken: JWT authentication
 # - bcryptjs: Password hashing
-# - sql.js: Embedded SQLite database
+# - mysql2: MySQL database driver
 # - nodemon: Development auto-reload
 
 # Create .env file (if not exists)
@@ -152,24 +152,53 @@ npm install
 **Backend .env Configuration:**
 ```env
 PORT=5000
+NODE_ENV=development
+
+# MySQL Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=vendor_management
+
+# JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 JWT_EXPIRES_IN=24h
-NODE_ENV=development
 ```
 
-#### 3. Database Initialization
+#### 3. Database Setup
 
-The SQLite database is **automatically created** on first run. No manual database setup required!
+**Create Database in MySQL:**
 
 ```bash
-# The database file will be created at:
-# backend/database/vendor_management.db
+# Method 1: Using MySQL Command Line
+mysql -u root -p
 
-# Sample data is included:
-# - Demo user: demo@example.com / demo123
-# - 5 sample vendors
-# - Multiple contacts, products, and purchase orders
+# Then run these commands:
+CREATE DATABASE vendor_management;
+USE vendor_management;
+exit;
+
+# Method 2: Using XAMPP phpMyAdmin
+# - Open http://localhost/phpmyadmin
+# - Click "New" to create database
+# - Name it "vendor_management"
 ```
+
+**Import Schema:**
+
+```bash
+# Import database schema
+mysql -u root -p vendor_management < database/schema.sql
+
+# Import sample data (optional)
+mysql -u root -p vendor_management < database/seed.sql
+```
+
+**Sample data includes:**
+- Demo user: demo@example.com / demo123
+- 5 sample vendors
+- Multiple contacts, products, and purchase orders
 
 #### 4. Frontend Setup
 
@@ -200,8 +229,8 @@ npm run dev
 
 # Output:
 # [nodemon] starting `node src/server.js`
+# ✅ MySQL database connected successfully
 # Server running on port 5000
-# SQLite database loaded successfully
 ```
 
 Backend will be available at: **http://localhost:5000**
@@ -237,78 +266,78 @@ Or click "Sign up here" to create a new account.
 
 **users**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- name (TEXT NOT NULL)
-- email (TEXT UNIQUE NOT NULL)
-- password_hash (TEXT NOT NULL)
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- name (VARCHAR(255) NOT NULL)
+- email (VARCHAR(255) UNIQUE NOT NULL)
+- password_hash (VARCHAR(255) NOT NULL)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
 ```
 
 **vendors**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- name (TEXT NOT NULL)
-- email (TEXT)
-- phone (TEXT)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- name (VARCHAR(255) NOT NULL)
+- email (VARCHAR(255))
+- phone (VARCHAR(50))
 - address (TEXT)
-- city (TEXT)
-- state (TEXT)
-- zip_code (TEXT)
-- country (TEXT)
-- tax_id (TEXT)
-- payment_terms (TEXT DEFAULT 'Net 30')
-- active (INTEGER DEFAULT 1)  -- 1=active, 0=inactive
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
-- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- city (VARCHAR(100))
+- state (VARCHAR(100))
+- zip_code (VARCHAR(20))
+- country (VARCHAR(100))
+- tax_id (VARCHAR(50))
+- payment_terms (VARCHAR(50) DEFAULT 'Net 30')
+- active (BOOLEAN DEFAULT TRUE)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+- updated_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 ```
 
 **contacts**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- vendor_id (INTEGER, FOREIGN KEY)
-- name (TEXT NOT NULL)
-- title (TEXT)
-- email (TEXT)
-- phone (TEXT)
-- is_primary (INTEGER DEFAULT 0)  -- 1=primary, 0=not primary
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- vendor_id (INT, FOREIGN KEY)
+- name (VARCHAR(255) NOT NULL)
+- title (VARCHAR(100))
+- email (VARCHAR(255))
+- phone (VARCHAR(50))
+- is_primary (BOOLEAN DEFAULT FALSE)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
 ```
 
 **products**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- vendor_id (INTEGER, FOREIGN KEY)
-- name (TEXT NOT NULL)
-- sku (TEXT)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- vendor_id (INT, FOREIGN KEY)
+- name (VARCHAR(255) NOT NULL)
+- sku (VARCHAR(100))
 - description (TEXT)
-- unit_price (REAL)
-- currency (TEXT DEFAULT 'USD')
-- active (INTEGER DEFAULT 1)
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
-- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- unit_price (DECIMAL(10,2))
+- currency (VARCHAR(10) DEFAULT 'USD')
+- active (BOOLEAN DEFAULT TRUE)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+- updated_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 ```
 
 **purchase_orders**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- vendor_id (INTEGER, FOREIGN KEY)
-- po_number (TEXT UNIQUE NOT NULL)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- vendor_id (INT, FOREIGN KEY)
+- po_number (VARCHAR(50) UNIQUE NOT NULL)
 - order_date (DATE NOT NULL)
 - expected_delivery (DATE)
-- status (TEXT DEFAULT 'draft')  -- draft, submitted, approved, received, cancelled
+- status (VARCHAR(50) DEFAULT 'draft')  -- draft, submitted, approved, received, cancelled
 - notes (TEXT)
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
-- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+- updated_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 ```
 
 **purchase_order_items**
 ```sql
-- id (INTEGER PRIMARY KEY)
-- purchase_order_id (INTEGER, FOREIGN KEY)
-- product_id (INTEGER, FOREIGN KEY)
-- quantity (INTEGER NOT NULL)
-- unit_price (REAL NOT NULL)
-- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- id (INT PRIMARY KEY AUTO_INCREMENT)
+- purchase_order_id (INT, FOREIGN KEY)
+- product_id (INT, FOREIGN KEY)
+- quantity (INT NOT NULL)
+- unit_price (DECIMAL(10,2) NOT NULL)
+- created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
 ```
 
 ## 🔌 API Endpoints
